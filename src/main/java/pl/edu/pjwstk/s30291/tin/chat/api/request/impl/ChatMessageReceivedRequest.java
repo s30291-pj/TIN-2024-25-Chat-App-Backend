@@ -7,6 +7,7 @@ import pl.edu.pjwstk.s30291.tin.chat.api.request.ChatRequest;
 @AllArgsConstructor
 @Getter
 public class ChatMessageReceivedRequest extends ChatRequest {
+	private String chat;
 	private String sender;
 	private String content;
 	private long timestamp;

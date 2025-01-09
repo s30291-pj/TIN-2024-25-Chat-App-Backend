@@ -9,7 +9,7 @@
 	<dependency>
 	    <groupId>com.sparkjava</groupId>
 	    <artifactId>spark-core</artifactId>
-	    <version>2.9.4</version>
+	    <version>2.9.3</version>
 	</dependency>
 	
 	<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
@@ -40,6 +40,20 @@
 	    <artifactId>commons-codec</artifactId>
 	    <version>1.17.2</version>
 	</dependency>
+	
+	<dependency>
+	    <groupId>com.surrealdb</groupId>
+	    <artifactId>surrealdb</artifactId>
+	    <version>0.1.0</version>
+	</dependency>
+	
+	<!-- https://mvnrepository.com/artifact/org.java-websocket/Java-WebSocket -->
+	<dependency>
+	    <groupId>org.java-websocket</groupId>
+	    <artifactId>Java-WebSocket</artifactId>
+	    <version>1.6.0</version>
+	</dependency>
+
 
   </dependencies>
 </project>

@@ -2,6 +2,7 @@ package pl.edu.pjwstk.s30291.tin.chat.api.websocket;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +15,7 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 
+import pl.edu.pjwstk.s30291.tin.chat.api.request.ChatIncomingRequestType;
 import pl.edu.pjwstk.s30291.tin.chat.api.request.ChatRequest;
 import pl.edu.pjwstk.s30291.tin.chat.api.request.impl.ChatAuthEstablishedRequest;
 import pl.edu.pjwstk.s30291.tin.chat.api.utility.JsonUtility;
@@ -26,6 +28,8 @@ public class SessionWebsocket {
 	
     @OnWebSocketConnect
     public void onConnected(Session session) {
+    	System.out.println("Connected!" + session.getRemoteAddress().toString());
+    	
     	SessionDetails details = new SessionDetails(session) {
 			@Override
 			public void onAuth(String hash) {
@@ -39,34 +43,55 @@ public class SessionWebsocket {
 
     @OnWebSocketClose
     public void onClosed(Session session, int statusCode, String reason) {
+    	System.out.println("Disconnected!" + session.getRemoteAddress().toString());
+    	
     	UUID id = sessionsIdentifiers.get(session);
     	SessionDetails details = sessionsDetails.get(id);
     	
     	sessionsDetails.remove(id);
     	sessionsIdentifiers.remove(session);
-    	sessionsHashes.remove(id);
+    	sessionsHashes.remove(details.getHash());
     }
+    
 
     @OnWebSocketMessage
     public void onMessage(Session session, String message) throws IOException {
-    	JsonUtility.fromJson(ChatRequest.class, message);
+    	System.out.println("Received from " + session.getRemoteAddress() + ": " + message);
     	
-        System.out.println("Got: " + message);
-        session.getRemote().sendString(message);
+    	ChatRequest request = JsonUtility.fromJson(ChatRequest.class, message);
+
+    	ChatIncomingRequestType type = ChatIncomingRequestType.getRequestType(request.getName());
+    	
+    	type.handle(message, getSessionDetails(session), this);
     }
     
     public void message(UUID uuid, ChatRequest request) {
-    	message(sessionsDetails.get(uuid).getSession(), request);
+    	message(getSessionDetails(uuid).getSession(), request);
     }
     
     public void message(String hash, ChatRequest request) {
-    	Collection<UUID> uuids = sessionsHashes.get(hash);
-    	
-    	uuids.forEach((uuid) ->  message(sessionsDetails.get(uuid).getSession(), request));
+    	getSessionsDetails(hash).forEach((details) -> message(details.getSession(), request));
     }
     
     public void message(Session session, ChatRequest request) {
-    	try { session.getRemote().sendString(request.toJson()); } 
-    	catch (Exception e) { e.printStackTrace(); }
+    	try { 
+    		String json = request.toJson();
+    		session.getRemote().sendString(json); 
+    		System.out.println("Sent to " + session.getRemoteAddress() + ": " + json);
+    	} catch (Exception e) { e.printStackTrace(); }
+    }
+    
+    public List<SessionDetails> getSessionsDetails(String hash) {
+    	Collection<UUID> uuids = sessionsHashes.get(hash);
+    	
+    	return uuids.stream().map((uuid) -> sessionsDetails.get(uuid)).toList();
+    }
+    
+    public SessionDetails getSessionDetails(Session session) {
+    	return getSessionDetails(sessionsIdentifiers.get(session));
+    }
+    
+    public SessionDetails getSessionDetails(UUID uuid) {
+    	return sessionsDetails.get(uuid);
     }
 }
