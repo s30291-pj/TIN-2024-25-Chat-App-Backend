@@ -50,7 +50,10 @@ public class SessionWebsocket {
     	
     	sessionsDetails.remove(id);
     	sessionsIdentifiers.remove(session);
-    	sessionsHashes.remove(details.getHash());
+    	
+    	if(details.getHash() != null) {
+    		sessionsHashes.remove(details.getHash());
+    	}
     }
     
 
@@ -79,6 +82,10 @@ public class SessionWebsocket {
     		session.getRemote().sendString(json); 
     		System.out.println("Sent to " + session.getRemoteAddress() + ": " + json);
     	} catch (Exception e) { e.printStackTrace(); }
+    }
+    
+    public void addIdentifiedSession(String hash, UUID uuid) {
+    	sessionsHashes.put(hash, uuid);
     }
     
     public List<SessionDetails> getSessionsDetails(String hash) {

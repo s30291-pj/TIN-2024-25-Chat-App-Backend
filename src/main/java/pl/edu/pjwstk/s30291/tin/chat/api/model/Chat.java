@@ -7,7 +7,7 @@ import java.util.List;
 import lombok.Getter;
 
 public class Chat {
-	private List<ChatMessage> history = new ArrayList<>();
+	@Getter private List<ChatMessage> history = new ArrayList<>();
 	
 	@Getter private String identifier;	
 	

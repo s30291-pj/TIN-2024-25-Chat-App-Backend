@@ -21,6 +21,10 @@ public class ChatAccount {
 		return invitations.contains(hash);
 	}
 	
+	public boolean containsContact(String hash) {
+		return contacts.stream().filter((c) -> c.getHash().equals(hash)).toList().size() > 0;
+	}
+	
 	public void addInvitation(String hash) {
 		invitations.add(hash);
 	}

@@ -12,6 +12,7 @@ import pl.edu.pjwstk.s30291.tin.chat.api.request.impl.ChatAuthEstablishedRequest
 import pl.edu.pjwstk.s30291.tin.chat.api.request.impl.ChatAuthRequest;
 import pl.edu.pjwstk.s30291.tin.chat.api.request.impl.ChatContactEstablishedRequest;
 import pl.edu.pjwstk.s30291.tin.chat.api.request.impl.ChatContactInviteRequest;
+import pl.edu.pjwstk.s30291.tin.chat.api.request.impl.ChatMessageReceivedRequest;
 import pl.edu.pjwstk.s30291.tin.chat.api.request.impl.ChatMessageSentRequest;
 import pl.edu.pjwstk.s30291.tin.chat.api.utility.JsonUtility;
 import pl.edu.pjwstk.s30291.tin.chat.api.utility.SurrealDatabase;
@@ -23,6 +24,8 @@ public enum ChatIncomingRequestType {
 	CHAT_AUTH(ChatAuthRequest.class, (ws, session, req) -> {
 		session.auth(req.getUsername(), req.getPassphrase());
 		
+		ws.addIdentifiedSession(session.getHash(), session.getUuid());
+		
 		ws.message(session.getSession(), new ChatAuthEstablishedRequest(session.getUuid()));
 	}),
 	
@@ -31,7 +34,11 @@ public enum ChatIncomingRequestType {
 			String senderId = session.getHash();
 			String receiverId = req.getIdentifier();
 			
+			if(senderId != null && senderId.equals(receiverId)) return;
+			
 			ChatAccount senderAccount = session.getAccountDetails();
+			
+			if(senderAccount.containsContact(receiverId)) return;
 			
 			// MUTUAL CONTACT
 			if(senderAccount.containsInvitation(receiverId)) {
@@ -47,6 +54,10 @@ public enum ChatIncomingRequestType {
 				
 				SurrealDatabase.updateOne("account", senderId, senderAccount);
 				SurrealDatabase.updateOne("account", receiverId, receiverAccount);
+				
+				String chatId = Chat.getChatIdentifier(senderId, receiverId);
+				
+				SurrealDatabase.createOne("chat", chatId, new Chat(chatId));
 				
 				ws.message(senderId, new ChatContactEstablishedRequest(contactForSender.getUsername(), contactForSender.getHash()));
 				ws.message(receiverId, new ChatContactEstablishedRequest(contactForReceiver.getUsername(), contactForReceiver.getHash()));
@@ -83,7 +94,10 @@ public enum ChatIncomingRequestType {
 			String chatId = Chat.getChatIdentifier(session.getHash(), req.getReceiver());
 			String json = JsonUtility.toJson(msg);
 			
-			driver.query("UPDATE chats:%s SET history += '%s'".formatted(chatId, json), null, JsonObject.class);
+			driver.query("UPDATE chat:%s SET history += %s".formatted(chatId, json), null, JsonObject.class);
+		
+			ChatMessageReceivedRequest messageRequest = new ChatMessageReceivedRequest(chatId, msg.getSender(), msg.getContent(), msg.getTimestamp());
+			ws.message(req.getReceiver(), messageRequest);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
