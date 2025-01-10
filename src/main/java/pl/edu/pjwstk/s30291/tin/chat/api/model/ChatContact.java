@@ -7,5 +7,5 @@ import lombok.Getter;
 @Getter
 public class ChatContact {
 	private String username;
-	private String hash;
+	private String identifier;
 }

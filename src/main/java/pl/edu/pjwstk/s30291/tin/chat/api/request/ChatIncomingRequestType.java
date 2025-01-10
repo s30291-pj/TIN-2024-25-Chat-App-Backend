@@ -1,5 +1,7 @@
 package pl.edu.pjwstk.s30291.tin.chat.api.request;
 
+import java.util.List;
+
 import com.google.gson.JsonObject;
 import com.surrealdb.driver.SyncSurrealDriver;
 
@@ -59,8 +61,8 @@ public enum ChatIncomingRequestType {
 				
 				SurrealDatabase.createOne("chat", chatId, new Chat(chatId));
 				
-				ws.message(senderId, new ChatContactEstablishedRequest(contactForSender.getUsername(), contactForSender.getHash()));
-				ws.message(receiverId, new ChatContactEstablishedRequest(contactForReceiver.getUsername(), contactForReceiver.getHash()));
+				ws.message(senderId, new ChatContactEstablishedRequest(contactForSender.getUsername(), contactForSender.getIdentifier()));
+				ws.message(receiverId, new ChatContactEstablishedRequest(contactForReceiver.getUsername(), contactForReceiver.getIdentifier()));
 				return;
 			}
 			
@@ -98,6 +100,12 @@ public enum ChatIncomingRequestType {
 		
 			ChatMessageReceivedRequest messageRequest = new ChatMessageReceivedRequest(chatId, msg.getSender(), msg.getContent(), msg.getTimestamp());
 			ws.message(req.getReceiver(), messageRequest);
+			
+			List<SessionDetails> senderSessions = ws.getSessionsDetails(session.getHash());
+			senderSessions.forEach((se) -> 
+			{
+				if(se != session) ws.message(se.getSession(), messageRequest);
+			});
 		}
 		catch(Exception e) {
 			e.printStackTrace();

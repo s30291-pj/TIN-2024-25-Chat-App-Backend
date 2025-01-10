@@ -18,14 +18,21 @@ import spark.Spark;
 
 public class ChatAPI {
 	/*
-	 * Program parameters: chatPort, surrealAdress, surrealUsername, surrealPassword,
+	 * Program parameters: chatPort, surrealAdress, surrealUsername, surrealPassword, sslKeystorePath, sslPassword
 	 */
 	public static void main(String... args) {
 		SurrealDatabase.connect(args[1], args[2], args[3]);
 		
 		Spark.port(Integer.valueOf(args[0]));
 		
+		// Use ssl
+		if(args.length > 4) {
+			Spark.secure(args[4], args[5], null, null);
+		}
+		
 		webSocket("/api/session", new SessionWebsocket());
+		
+		enableCORS("*", "GET,POST,OPTIONS", "Content-Type,Authorization");
 		
 		post("/api/contacts", (req, res) -> {
 			String json = req.body();
@@ -55,5 +62,13 @@ public class ChatAPI {
 	private static String hash(String username, String passphrase) {
 		return DigestUtils.sha256Hex(username + passphrase);
 	}
+	
+	private static void enableCORS(final String origin, final String methods, final String headers) {
+        Spark.before((request, response) -> {
+            response.header("Access-Control-Allow-Origin", origin);
+            response.header("Access-Control-Allow-Methods", methods);
+            response.header("Access-Control-Allow-Headers", headers);
+        });
+    }
 	
 }
